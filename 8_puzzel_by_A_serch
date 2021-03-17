@@ -1,3 +1,5 @@
+""" Author Was Ayush Patel """
+
 from heapq import heappush, heappop, heapify
 from random import shuffle
 import time
