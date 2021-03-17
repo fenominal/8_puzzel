@@ -1,162 +1,146 @@
-"""Author Ayush"""
-
-import enum
+from heapq import heappush, heappop, heapify
+from random import shuffle
 import time
-class Action(enum.Enum):
-    MoveDown = 0
-    MoveUp = 1
-    MoveLeft = 2
-    MoveRight = 3
-    noAction = 4
-    
+class Solver:
+ def __init__(self, initial_state=None):
+     self.initial_state = State(initial_state)
+     self.goal = list(range(1, 9))
+ def _rebuildPath(self, end):
+     path = [end]
+     state = end.parent
+     while state.parent:
+         path.append(state)
+         state = state.parent
+     return path
+ 
+ def solve(self):
+     openset = PriorityQueue()
+     openset.add(self.initial_state)
+     closed = set()
+     moves = 0
+     #print(self.goal, '\n\n')
+     print('trying to solve:')
+     print(openset.peek(), '\n\n')
+     start = time.time()
+     while openset:
+         current = openset.poll()
+         if current.values[:-1] == self.goal:
+             end = time.time()
+             print('I found a solution')
+             path = self._rebuildPath(current)
+             for state in reversed(path):
+                 print(state)
+                 print("\n")
+             print('resolved with %d moves' % len(path))
+             print('I found the solution in %2.f seconds' % (float((end - start)*1000)))
+             break
+         moves += 1
+         for state in current.possible_moves(moves):
+             if state not in closed:
+                 openset.add(state)
+                     
+                 closed.add(current)
+             else:
+             
+                 print('I couldn''t solve it!')
 
-class Node:
-    
-    def __init__(self,position,action=Action.noAction,parent=None):
-        self.position = position
-        self.action = action
+
+class Action:
+ MoveUp = 1
+ MoveDown = 2
+ MoveLeft = 3
+ MoveRight = 4
+ NoAction = 5
+
+class State:
+    def __init__(self, values,action = Action.NoAction, moves=0, parent=None):
+        self.values = values
+        self.moves = moves
         self.parent = parent
-        self.h = 0
-        self.f = 0
-    def printNode(self):
-        print("Position : ",self.position,"\n","Action : ",self.action,"\n","Parent : ",self.parent,"\n",)
-        
-    def __eq__(self, other):
-        return self.position == other.position
-
-    def __lt__(self,other):
-        return self.f < other.f
-
-    def __gt__(self,other):
-        return self.f>other.f
-
-    def __repr__(self):
-        return '\n'.join(['\n',str(self.action),str(self.position[:3]),str(self.position[3:6]),str(self.position[6:])]).replace('[','').replace(']','').replace(',','').replace('0','_')
-   
-# heuristic value
-    def _h (self,goal):
-        return sum([1 if self.position[i] != goal[i] else 0 for i in range(9)])
-    
-    def generateValue(self,goal):
-        self.h = self._h(goal)
-        self.f = self.h
-
-#Possible Moves
-
-    def possibleMoves(self):
-        successor = []
-        i = self.position.index(0)
-        
-        #MoveDown
-        if i in [3,4,5,6,7,8]:
-            newValue = self.position[:]
-            newValue[i],newValue[i-3] = newValue[i-3],newValue[i]
-            
-            successor.append(Node(position = newValue,parent = self,action = Action.MoveDown))
-            
-        #MoveUp
-        if i in [0,1,2,3,4,5]:
-            newValue = self.position[:]
-            newValue[i],newValue[i+3] = newValue[i+3],newValue[i]
-            
-            successor.append(Node(position = newValue,parent = self,action = Action.MoveUp))
-            
-        #MoveLeft
-        if i in [0,1,3,4,6,7]:
-            newValue = self.position[:]
-            newValue[i],newValue[i+1] = newValue[i+1],newValue[i]
-            
-            successor.append(Node(position = newValue,parent = self,action = Action.MoveLeft))
-            
-        #MoveRight
-        if i in [1,2,4,5,7,8]:
-            newValue = self.position[:]
-            newValue[i],newValue[i-1] = newValue[i-1],newValue[i]
-            
-#             successor.append(Node(newValue,self,Action.MoveDown))
-            successor.append(Node(position = newValue,parent = self,action = Action.MoveRight))
-        
-        return successor
-        
-        
-def push(list1,node):
-    list1.append(node)
-    
-def pop(list1):
-    a = list1[0]
-    del list1[0]
-    return a
-    
-def not_empty(list1):
-    if len(list1)!=0:
-        return True
-    else:
-        return False
-
-# PrintPath
-def printpath(node,iniState):
-    list3 = []
-    while(node!=iniState):
-        list3.append(node)
-        node = node.parent
-    reversed_list = [list3[-(i+1)] for i in range(len(list3))]
-    
-    print('The path :\n ')
-    for i in range(len(reversed_list)):
-        print('Action No:',i+1 ,reversed_list[i])
-
-    print('\n The Cost :',len(reversed_list))
-    
-def can_add_to_openlist(openList,successor):
-    for node in openList:
-        if successor == node and successor.f >= node.f:
-            return False
-    return True
-
-
-def EightPuzzle(initialState,goalState):
-    iniState = Node(initialState)
-    iniState.generateValue(goalState)
-    
-    openList = []
-    closedList = []
-    find = 1
-    
-    openList.append(iniState)
-    while(not_empty(openList)):
-        openList.sort()
-        currentNode = pop(openList)
-#         print(type(currentNode))
-        closedList.append(currentNode)
-        if currentNode.position == goalState:
-            find = 1
-            printpath(currentNode,iniState)
-            break
+        self.goal = range(1, 9)
+        self.action = action
+        if parent:
+            self.depth = parent.depth + 1
         else:
-            successors = currentNode.possibleMoves()
-        for succ in successors:
-            if succ in closedList:
-                continue
-            else:
-                succ.generateValue(goalState)
-                if can_add_to_openlist(openList,succ):
-                    openList.append(succ)
-                    
-    if find == 1:
-        print("Solution Found")
-    else:
-        print("Solution UnFound")
-  
+            self.depth = 0
+    def path(self):
+        "Create a list of nodes from the root to this node."
+        x, result = self, [self]
+        while x.parent:
+            result.append(x.parent)
+            x = x.parent
+        return result
+    def possible_moves(self, moves):
+        i = self.values.index(0)
+        #Move Down
+        if i in [3, 4, 5, 6, 7, 8]:
+            new_board = self.values[:]
+            new_board[i], new_board[i - 3] = new_board[i - 3], new_board[i]
+            yield State(new_board,Action.MoveDown, moves, self)
+        #Move Right
+        if i in [1, 2, 4, 5, 7, 8]:
+            new_board = self.values[:]
+            new_board[i], new_board[i - 1] = new_board[i - 1], new_board[i]
+            yield State(new_board,Action.MoveRight, moves, self)
+        #Move left
+        if i in [0, 1, 3, 4, 6, 7]:
+            new_board = self.values[:]
+            new_board[i], new_board[i + 1] = new_board[i + 1], new_board[i]
+            yield State(new_board,Action.MoveLeft, moves, self)
+        #Move Up
+        if i in [0, 1, 2, 3, 4, 5]:
+            new_board = self.values[:]
+            new_board[i], new_board[i + 3] = new_board[i + 3], new_board[i]
+            yield State(new_board,Action.MoveUp, moves, self)
+    def score(self):
+        return self._h() + self._g()
+ 
+    def _h(self):
+        return sum([1 if self.values[i] != self.goal[i] else 0 for i in range(8)])
 
+ 
+    def _g(self):
+        return self.moves
+ 
+    def __cmp__(self, other):
 
-    
-if __name__=='__main__':
-#     initialState = [1,2,3,0,4,6,7,5,8]
-#     goalState = [1,2,3,4,5,6,7,8,0]
-    initialState = [5,0,8,4,2,1,7,3,6]
-    goalState = [1,2,3,4,5,6,7,8,0]
-    startTime = time.time()
-    EightPuzzle(initialState,goalState)
-    endTime = time.time()
-    
-    print("Total time ;",(endTime-startTime)*1000,"ms")
+        return self.values == other.values
+ 
+    def __eq__(self, other):
+        return self.__cmp__(other)
+ 
+    def __hash__(self):
+        return hash(str(self.values))
+ 
+    def __lt__(self, other):
+        return self.score() < other.score()
+ 
+    def __str__(self):
+        return '\n'.join([str(self.values[:3]),
+ 
+                          str(self.values[3:6]),
+                          str(self.values[6:9])]).replace('[', '').replace(']', '').replace(',', '').replace('0', 'x')
+
+class PriorityQueue:
+ def __init__(self):
+     self.pq = []
+ def add(self, item):
+     heappush(self.pq, item)
+ def poll(self):
+     return heappop(self.pq)
+ def peek(self):
+     return self.pq[0]
+ def remove(self, item):
+     value = self.pq.remove(item)
+     heapify(self.pq)
+     return value is not None
+ def __len__(self):
+     return len(self.pq)
+
+puzzle = list(range(9))
+shuffle(puzzle)
+#puzzle = [1, 7, 4, 6, 8, 3, 2, 5, 0]
+#puzzle = [1, 2, 3, 0, 4, 6, 7, 5, 8]
+puzzle = [5,0,8,4,2,1,7,3,6]
+solver = Solver(puzzle)
+solver.solve()
